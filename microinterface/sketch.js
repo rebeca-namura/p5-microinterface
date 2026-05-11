@@ -1,185 +1,399 @@
 let currentPage = 0;
 
-let angle = 0;
-let stackHeight = 0;
+let customers = [];
+let approvedBars = [];
 
-let points = [];
+let loadingProgress = 0;
 
 function setup() {
-  createCanvas(600, 500);
+
+  createCanvas(700, 500);
 
   rectMode(CENTER);
   textAlign(CENTER, CENTER);
 
-  // Create random points for clusters
+
   for (let i = 0; i < 40; i++) {
-    points.push({
-      x: random(100, 500),
-      y: random(150, 420),
-      targetX: random([180, 300, 420]),
-      targetY: random([220, 320]),
+
+    customers.push({
+
+      x: random(120, 580),
+      y: random(180, 380),
+
+      income: random(),
+      risk: random()
     });
   }
 
-  // Change page every 5 seconds
-  setInterval(() => {
-    currentPage++;
 
-    if (currentPage > 2) {
-      currentPage = 0;
-    }
-  }, 5000);
+  for (let i = 0; i < 7; i++) {
+
+    approvedBars.push(random(4000, 20000));
+  }
 }
 
 function draw() {
+
   background(15);
 
-  if (currentPage === 0) {
-    loadingClusters();
-    loadingText("Ajustando Clusters");
-  }
 
-  if (currentPage === 1) {
-    loadingFunction();
-    loadingText("Fazendo Cálculo da Função");
-  }
+  loadingProgress += 0.4;
 
-  if (currentPage === 2) {
-    loadingResults();
-    loadingText("Gerando Resultados");
+  
+  if (loadingProgress >= 100) {
+
+  loadingProgress = 0;
+
+  currentPage++;
+
+  if (currentPage > 2) {
+
+    currentPage = 0;
+
+    resetClusters();
   }
 }
 
-// -----------------------------------
-// TITLE
-// -----------------------------------
+
+
+  if (currentPage === 0) {
+
+    loadingText("Analisando Perfis de Clientes");
+
+    loadingClusters();
+  }
+
+  if (currentPage === 1) {
+
+    loadingText("Otimizando Política de Crédito");
+
+    loadingOptimization();
+  }
+
+  if (currentPage === 2) {
+
+    loadingText("Gerando Limites Recomendados");
+
+    loadingResults();
+  }
+
+  drawProgressBar();
+}
+
 
 function loadingText(message) {
+
   fill(255);
 
   textStyle(BOLD);
-  textSize(30);
+
+  textSize(28);
 
   text(message, width / 2, 60);
 }
 
-// -----------------------------------
-// PAGE 1 — CLUSTERS
-// Points move toward groups
-// Mouse attracts clusters
-// -----------------------------------
+
+function drawProgressBar() {
+
+  noFill();
+
+  stroke(80);
+
+  rect(width / 2, 460, 420, 18);
+
+
+  noStroke();
+
+  fill(100, 255, 100);
+
+  rect(
+    140 + loadingProgress * 2,
+    460,
+    loadingProgress * 4,
+    18
+  );
+
+
+  fill(180);
+
+  textSize(14);
+
+  textAlign(LEFT, CENTER);
+
+  text(
+    floor(loadingProgress) + "%",
+    width / 2 + 230,
+    460
+  );
+
+
+  textAlign(CENTER, CENTER);
+}
+
+
 
 function loadingClusters() {
 
-  for (let p of points) {
-
-    // Move slowly to cluster centers
-    p.x = lerp(p.x, p.targetX + mouseX * 0.02, 0.02);
-    p.y = lerp(p.y, p.targetY + mouseY * 0.01, 0.02);
-
-    fill(255, 80, 80);
-
-    circle(p.x, p.y, 12);
-  }
-
-  // Cluster centers
-  fill(255);
-
-  circle(180 + mouseX * 0.02, 220, 25);
-  circle(300 + mouseX * 0.02, 320, 25);
-  circle(420 + mouseX * 0.02, 220, 25);
-
   fill(180);
 
-  textSize(18);
-  text("Mouse changes cluster position", width / 2, 460);
-}
+  textSize(15);
 
-// -----------------------------------
-// PAGE 2 — FUNCTION CALCULATION
-// Rotating operators + live graph
-// Mouse controls complexity
-// -----------------------------------
+  text(
+    "Agrupando clientes com perfis semelhantes",
+    width / 2,
+    100
+  );
 
-function loadingFunction() {
 
-  stroke(255);
-  noFill();
+  let centers = [
 
-  beginShape();
+    { x: 200, y: 260, color: [100, 255, 100] },
+    { x: 350, y: 260, color: [255, 220, 100] },
+    { x: 500, y: 260, color: [255, 120, 120] }
+  ];
 
-  for (let x = 0; x < width; x++) {
 
-    let y =
-      height / 2 +
-      sin(x * 0.02 + angle) *
-      (50 + mouseY * 0.1);
+  let counts = [0, 0, 0];
 
-    vertex(x, y);
+
+  for (let customer of customers) {
+
+    let clusterIndex;
+
+    if (customer.risk < 0.3) {
+
+      clusterIndex = 0;
+
+    } else if (customer.risk < 0.6) {
+
+      clusterIndex = 1;
+
+    } else {
+
+      clusterIndex = 2;
+    }
+
+    customer.cluster = clusterIndex;
+
+    counts[clusterIndex]++;
   }
 
-  endShape();
 
-  push();
+  for (let customer of customers) {
 
-  translate(width / 2, height / 2);
+    let target = centers[customer.cluster];
 
-  rotate(angle);
 
-  fill(255);
-  noStroke();
+    customer.x = lerp(customer.x, target.x, 0.025);
 
-  textSize(60);
+    customer.y = lerp(customer.y, target.y, 0.025);
 
-  text("+", 0, -90);
-  text("-", 90, 0);
-  text("%", -90, 0);
+    fill(
+      target.color[0],
+      target.color[1],
+      target.color[2]
+    );
 
-  pop();
+    noStroke();
 
-  angle += 0.03;
+    circle(customer.x, customer.y, 8);
+  }
 
-  fill(180);
 
-  textSize(18);
-  text("Move mouse vertically to change calculation intensity", width / 2, 460);
-}
+  let clusterAppearance =
+    map(loadingProgress, 40, 100, 0, 1);
 
-// -----------------------------------
-// PAGE 3 — RESULTS
-// Squares become bars/data blocks
-// Mouse changes generation speed
-// -----------------------------------
+  clusterAppearance =
+    constrain(clusterAppearance, 0, 1);
 
-function loadingResults() {
+  for (let i = 0; i < centers.length; i++) {
 
-  let speed = floor(map(mouseX, 0, width, 10, 2));
+    let clusterSize =
+      counts[i] * 6 * clusterAppearance;
 
-  fill(255);
+    fill(
+      centers[i].color[0],
+      centers[i].color[1],
+      centers[i].color[2],
+      100
+    );
 
-  for (let i = 0; i < stackHeight; i++) {
-
-    let h = random(30, 120);
-
-    rect(
-      120 + i * 35,
-      height - h / 2 - 60,
-      25,
-      h
+    circle(
+      centers[i].x,
+      centers[i].y,
+      clusterSize
     );
   }
 
-  // Faster generation with mouse
-  if (frameCount % speed === 0) {
-    stackHeight++;
-  }
-
-  if (stackHeight > 10) {
-    stackHeight = 0;
-  }
 
   fill(180);
 
-  textSize(18);
-  text("Move mouse horizontally to speed up results", width / 2, 460);
+  textSize(14);
+
+  text(
+    "Clientes semelhantes convergem para os mesmos clusters",
+    width / 2,
+    430
+  );
+}
+
+
+function resetClusters() {
+
+  for (let customer of customers) {
+
+
+    customer.x = random(120, 580);
+
+    customer.y = random(180, 380);
+  }
+}
+
+function loadingOptimization() {
+
+  fill(180);
+
+  textSize(15);
+
+  text(
+    "Resolvendo problema de otimização linear",
+    width / 2,
+    100
+  );
+
+
+
+  stroke(100);
+
+  line(120, 380, 560, 380);
+  line(120, 140, 120, 380);
+
+
+  noStroke();
+
+  fill(180);
+
+  textSize(13);
+
+  text("Risco", 560, 400);
+  text("Retorno", 85, 140);
+
+
+  strokeWeight(2);
+
+  stroke(255, 120, 120);
+
+  line(120, 340, 520, 180);
+
+  stroke(100, 180, 255);
+
+  line(180, 150, 540, 340);
+
+  stroke(255, 220, 100);
+
+  line(250, 380, 420, 150);
+
+
+  noStroke();
+
+  fill(100, 255, 120, 70);
+
+  beginShape();
+
+  vertex(260, 320);
+  vertex(390, 230);
+  vertex(470, 280);
+  vertex(360, 340);
+
+  endShape(CLOSE);
+
+
+  stroke(255);
+
+  strokeWeight(2);
+
+  let lineOffset =
+    map(loadingProgress, 0, 100, -80, 60);
+
+
+  let optimalX =
+    map(loadingProgress, 0, 100, 280, 390);
+
+  let optimalY =
+    map(loadingProgress, 0, 100, 320, 240);
+
+  noStroke();
+
+  fill(255);
+
+  circle(optimalX, optimalY, 18);
+
+
+  fill(180);
+
+  textSize(14);
+
+  text(
+    "Explorando soluções viáveis até encontrar o melhor limite",
+    width / 2,
+    430
+  );
+}
+
+function loadingResults() {
+
+  fill(180);
+
+  textSize(15);
+
+  text(
+    "Gerando recomendação final de limites",
+    width / 2,
+    100
+  );
+
+  for (let i = 0; i < approvedBars.length; i++) {
+
+
+    let targetHeight = approvedBars[i] / 120;
+
+    let animatedHeight =
+      map(
+        loadingProgress,
+        0,
+        100,
+        0,
+        targetHeight
+      );
+
+    if (animatedHeight < 80) {
+
+      fill(100, 255, 100);
+
+    } else if (animatedHeight < 120) {
+
+      fill(255, 220, 100);
+
+    } else {
+
+      fill(255, 120, 120);
+    }
+
+    rect(
+      170 + i * 55,
+      360 - animatedHeight / 2,
+      32,
+      animatedHeight
+    );
+
+    fill(255);
+
+    textSize(11);
+
+    text(
+      "R$" + floor(animatedHeight * 120),
+      170 + i * 55,
+      390
+    );
+  }
 }
